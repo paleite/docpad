@@ -167,8 +167,8 @@ class DocPad extends EventEmitterGrouped
 			@warn('Loggers have already been set')
 		else
 			@loggerInstances = loggers
-			@loggerInstances.logger.setConfig(dry:true)
-			@loggerInstances.console.setConfig(dry:false).pipe(process.stdout)
+			@loggerInstances.logger
+			@loggerInstances.console.pipe(process.stdout)
 		return loggers
 	destroyLoggers: ->
 		if @loggerInstances
