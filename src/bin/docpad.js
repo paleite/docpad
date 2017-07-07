@@ -1,72 +1,87 @@
-# ---------------------------------
-# Check node version right away
+/*
+ * decaffeinate suggestions:
+ * DS101: Remove unnecessary use of Array.from
+ * DS102: Remove unnecessary code created because of implicit returns
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ */
+// ---------------------------------
+// Check node version right away
 
-if process.versions.node.indexOf('0') is 0 and process.versions.node.split('.')[1] % 2 isnt 0
-	console.log require('util').format(
-		"""
-		== WARNING ==
-		   DocPad is running against an unstable version of Node.js (v%s to be precise).
-		   Unstable versions of Node.js WILL break things! Do not use them with DocPad!
-		   Run DocPad with a stable version of Node.js (e.g. v%s) for a stable experience.
-		   For more information, visit: %s
-		== WARNING ===
-		"""
-		process.versions.node, "0."+(process.versions.node.split('.')[1]-1), "http://docpad.org/unstable-node"
+if ((process.versions.node.indexOf('0') === 0) && ((process.versions.node.split('.')[1] % 2) !== 0)) {
+	console.log(require('util').format(
+		`\
+== WARNING ==
+   DocPad is running against an unstable version of Node.js (v%s to be precise).
+   Unstable versions of Node.js WILL break things! Do not use them with DocPad!
+   Run DocPad with a stable version of Node.js (e.g. v%s) for a stable experience.
+   For more information, visit: %s
+== WARNING ===\
+`,
+		process.versions.node, `0.${process.versions.node.split('.')[1]-1}`, "http://docpad.org/unstable-node"
 	)
+	);
+}
 
-# Prepare
-docpadUtil = require('../lib/util')
+// Prepare
+const docpadUtil = require('../lib/util');
 
 
-# ---------------------------------
-# Check for Local DocPad Installation
+// ---------------------------------
+// Check for Local DocPad Installation
 
-checkDocPad = ->
-	# Skip if we explcitly want to use the global installation
-	if '--global' in process.argv or '--g' in process.argv
-		return startDocPad()
+const checkDocPad = function() {
+	// Skip if we explcitly want to use the global installation
+	if (Array.from(process.argv).includes('--global') || Array.from(process.argv).includes('--g')) {
+		return startDocPad();
+	}
 
-	# Skip if we are already the local installation
-	if docpadUtil.isLocalDocPadExecutable()
-		return startDocPad()
+	// Skip if we are already the local installation
+	if (docpadUtil.isLocalDocPadExecutable()) {
+		return startDocPad();
+	}
 
-	# Skip if the local installation doesn't exist
-	if docpadUtil.getLocalDocPadExecutableExistance() is false
-		return startDocPad()
+	// Skip if the local installation doesn't exist
+	if (docpadUtil.getLocalDocPadExecutableExistance() === false) {
+		return startDocPad();
+	}
 
-	# Forward to the local installation
-	return docpadUtil.startLocalDocPadExecutable()
+	// Forward to the local installation
+	return docpadUtil.startLocalDocPadExecutable();
+};
 
-# ---------------------------------
-# Start our DocPad Installation
+// ---------------------------------
+// Start our DocPad Installation
 
-startDocPad = ->
-	# Require
-	DocPad = require('../lib/docpad')
-	ConsoleInterface = require('../lib/interfaces/console')
+var startDocPad = function() {
+	// Require
+	const DocPad = require('../lib/docpad');
+	const ConsoleInterface = require('../lib/interfaces/console');
 
-	# Fetch action
-	action =
-		# we should eventually do a load always
-		# but as it is a big change of functionality, lets only do it inclusively for now
-		if process.argv[1...].join(' ').indexOf('deploy') isnt -1  # if we are the deploy command
+	// Fetch action
+	const action =
+		// we should eventually do a load always
+		// but as it is a big change of functionality, lets only do it inclusively for now
+		process.argv.slice(1).join(' ').indexOf('deploy') !== -1 ?  // if we are the deploy command
 			'load'
-		else  # if we are not the deploy command
-			false
+		:  // if we are not the deploy command
+			false;
 
-	# Create DocPad Instance
-	new DocPad {action}, (err,docpad) ->
-		# Check
-		return docpadUtil.writeError(err)  if err
+	// Create DocPad Instance
+	return new DocPad({action}, function(err,docpad) {
+		// Check
+		if (err) { return docpadUtil.writeError(err); }
 
-		# Create Console Interface
-		new ConsoleInterface {docpad}, (err,consoleInterface) ->
-			# Check
-			return docpadUtil.writeError(err)  if err
+		// Create Console Interface
+		return new ConsoleInterface({docpad}, function(err,consoleInterface) {
+			// Check
+			if (err) { return docpadUtil.writeError(err); }
 
-			# Start
-			consoleInterface.start()
+			// Start
+			return consoleInterface.start();
+		});
+	});
+};
 
-# ---------------------------------
-# Fire
-checkDocPad()
+// ---------------------------------
+// Fire
+checkDocPad();

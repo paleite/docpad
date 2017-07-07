@@ -1,4 +1,4 @@
-# Tests
-require('./api-test')
-require('./actions-test')
-require('./render-test')
+// Tests
+require('./api-test');
+require('./actions-test');
+require('./render-test');

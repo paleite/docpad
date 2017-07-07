@@ -1,253 +1,296 @@
-# =====================================
-# Requires
+/*
+ * decaffeinate suggestions:
+ * DS102: Remove unnecessary code created because of implicit returns
+ * DS203: Remove `|| {}` from converted for-own loops
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ */
+// =====================================
+// Requires
 
-# Standard Library
-util = require('util')
-pathUtil = require('path')
+// Standard Library
+const util = require('util');
+const pathUtil = require('path');
 
-# External
-{difference} = require('underscore')
-superAgent = require('superagent')
-scandir = require('scandirectory')
-safefs = require('safefs')
-{equal, deepEqual} = require('assert-helpers')
-joe = require('joe')
+// External
+const {difference} = require('underscore');
+const superAgent = require('superagent');
+const scandir = require('scandirectory');
+const safefs = require('safefs');
+const {equal, deepEqual} = require('assert-helpers');
+const joe = require('joe');
 
-# Local
-DocPad = require('../lib/docpad')
-docpadUtil = require('../lib/util')
+// Local
+const DocPad = require('../lib/docpad');
+const docpadUtil = require('../lib/util');
 
 
-# -------------------------------------
-# Configuration
+// -------------------------------------
+// Configuration
 
-# Paths
-docpadPath = pathUtil.join(__dirname, '..', '..')
-rootPath   = pathUtil.join(docpadPath, 'test')
-srcPath    = pathUtil.join(rootPath, 'src')
-outPath    = pathUtil.join(rootPath, 'out')
-expectPath = pathUtil.join(rootPath, 'out-expected')
-cliPath    = pathUtil.join(docpadPath, 'bin', 'docpad')
+// Paths
+const docpadPath = pathUtil.join(__dirname, '..', '..');
+const rootPath   = pathUtil.join(docpadPath, 'test');
+const srcPath    = pathUtil.join(rootPath, 'src');
+const outPath    = pathUtil.join(rootPath, 'out');
+const expectPath = pathUtil.join(rootPath, 'out-expected');
+const cliPath    = pathUtil.join(docpadPath, 'bin', 'docpad');
 
-# Params
-port = 9770
-hostname = "0.0.0.0"
-baseUrl = "http://#{hostname}:#{port}"
-testWait = 1000*60*5  # five minutes
+// Params
+const port = 9770;
+const hostname = "0.0.0.0";
+const baseUrl = `http://${hostname}:${port}`;
+const testWait = 1000*60*5;  // five minutes
 
-# Configure DocPad
-docpadConfig =
-	port: port
-	hostname: hostname
-	rootPath: rootPath
-	logLevel: docpadUtil.getDefaultLogLevel()
-	skipUnsupportedPlugins: false
-	catchExceptions: false
-	environments:
-		development:
-			a: 'instanceConfig'
-			b: 'instanceConfig'
-			templateData:
-				a: 'instanceConfig'
+// Configure DocPad
+const docpadConfig = {
+	port,
+	hostname,
+	rootPath,
+	logLevel: docpadUtil.getDefaultLogLevel(),
+	skipUnsupportedPlugins: false,
+	catchExceptions: false,
+	environments: {
+		development: {
+			a: 'instanceConfig',
+			b: 'instanceConfig',
+			templateData: {
+				a: 'instanceConfig',
 				b: 'instanceConfig'
+			}
+		}
+	}
+};
 
-# Fail on an uncaught error
-process.on 'uncaughtException', (err) ->
-	throw err
+// Fail on an uncaught error
+process.on('uncaughtException', function(err) {
+	throw err;
+});
 
-# Local globals
-docpad = null
+// Local globals
+let docpad = null;
 
 
-# -------------------------------------
-# Tests
+// -------------------------------------
+// Tests
 
-joe.suite 'docpad-actions', (suite,test) ->
+joe.suite('docpad-actions', function(suite,test) {
 
-	test 'create', (done) ->
-		docpad = DocPad.createInstance docpadConfig, (err) ->
-			done(err)
+	test('create', done =>
+		docpad = DocPad.createInstance(docpadConfig, err => done(err))
+	);
 
-	test 'config', (done) ->
-		expected = {a:'instanceConfig', b:'instanceConfig', c:'websiteConfig'}
-		config = docpad.getConfig()
-		{a,b,c} = config
+	test('config', function(done) {
+		const expected = {a:'instanceConfig', b:'instanceConfig', c:'websiteConfig'};
+		const config = docpad.getConfig();
+		let {a,b,c} = config;
 		deepEqual(
-			{a,b,c}
+			{a,b,c},
 			expected
-		)
+		);
 
-		templateData = docpad.getTemplateData()
-		{a,b,c} = templateData
+		const templateData = docpad.getTemplateData();
+		({a,b,c} = templateData);
 		deepEqual(
-			{a,b,c}
+			{a,b,c},
 			expected
-		)
+		);
 
-		done()
+		return done();
+	});
 
-	test 'clean', (done) ->
-		docpad.action 'clean', (err) ->
-			done(err)
+	test('clean', done =>
+		docpad.action('clean', err => done(err))
+	);
 
-	test 'install', (done) ->
-		docpad.action 'install', (err) ->
-			done(err)
+	test('install', done =>
+		docpad.action('install', err => done(err))
+	);
 
-	suite 'generate', (suite,test) ->
-		test 'action', (done) ->
-			docpad.action 'generate', (err) ->
-				done(err)
+	suite('generate', function(suite,test) {
+		test('action', done =>
+			docpad.action('generate', err => done(err))
+		);
 
-		test 'writeSource', (done) ->
-			file = docpad.getFileAtPath('writesource.txt.eco')
-			file.writeSource(done)
+		test('writeSource', function(done) {
+			const file = docpad.getFileAtPath('writesource.txt.eco');
+			return file.writeSource(done);
+		});
 
-		suite 'results', (suite,test) ->
-			testMarkup = (key,actual,expected) ->
-				test key, ->
-					# trim whitespace, to avoid util conflicts between node versions and other oddities
-					# also address the slash backslash issue with windows and unix
-					actualString = actual.trim().replace(/\s+/g,'').replace(/([abc])[\\]+/g, '$1/')
-					expectedString = expected.trim().replace(/\s+/g,'').replace(/([abc])[\\]+/g, '$1/')
+		suite('results', function(suite,test) {
+			const testMarkup = (key,actual,expected) =>
+				test(key, function() {
+					// trim whitespace, to avoid util conflicts between node versions and other oddities
+					// also address the slash backslash issue with windows and unix
+					const actualString = actual.trim().replace(/\s+/g,'').replace(/([abc])[\\]+/g, '$1/');
+					const expectedString = expected.trim().replace(/\s+/g,'').replace(/([abc])[\\]+/g, '$1/');
 
-					# check equality
-					equal(
-						actualString
+					// check equality
+					return equal(
+						actualString,
 						expectedString
-					)
+					);
+				})
+			;
 
-			test 'same files', (done) ->
-				scandir(
-					path: outPath
-					readFiles: true
-					ignoreHiddenFiles: false
-					next: (err,outList) ->
-						scandir(
-							path: expectPath
-							readFiles: true
-							ignoreHiddenFiles: false
-							next: (err,expectList) ->
-								# check we have the same files
+			return test('same files', done =>
+				scandir({
+					path: outPath,
+					readFiles: true,
+					ignoreHiddenFiles: false,
+					next(err,outList) {
+						return scandir({
+							path: expectPath,
+							readFiles: true,
+							ignoreHiddenFiles: false,
+							next(err,expectList) {
+								// check we have the same files
 								deepEqual(
 									difference(
-										Object.keys(outList)
+										Object.keys(outList),
 										Object.keys(expectList)
-									)
-									[]
+									),
+									[],
 									'difference to be empty'
-								)
+								);
 
-								# check the contents of those files match
-								for own key,actual of outList
-									expected = expectList[key]
-									testMarkup(key, actual, expected)
+								// check the contents of those files match
+								for (let key of Object.keys(outList || {})) {
+									const actual = outList[key];
+									const expected = expectList[key];
+									testMarkup(key, actual, expected);
+								}
 
-								# done with same file check
-								# start the markup tests
-								done()
-						)
-				)
+								// done with same file check
+								// start the markup tests
+								return done();
+							}
+						});
+					}
+				})
+			);
+		});
 
-		test 'ignored "ignored" documents"', (done) ->
-			safefs.exists "#{outPath}/ignored.html", (exists) ->
-				equal(exists, false)
-				done()
+		test('ignored "ignored" documents"', done =>
+			safefs.exists(`${outPath}/ignored.html`, function(exists) {
+				equal(exists, false);
+				return done();
+			})
+		);
 
-		test 'ignored common patterns documents"', (done) ->
-			safefs.exists "#{outPath}/.svn", (exists) ->
-				equal(exists, false)
-				done()
+		return test('ignored common patterns documents"', done =>
+			safefs.exists(`${outPath}/.svn`, function(exists) {
+				equal(exists, false);
+				return done();
+			})
+		);
+	});
 
-	suite 'server', (suite,test) ->
+	suite('server', function(suite,test) {
 
-		test 'server action', (done) ->
-			docpad.action 'server', (err) ->
-				done(err)
+		test('server action', done =>
+			docpad.action('server', err => done(err))
+		);
 
-		test 'served generated documents', (done) ->
-			superAgent.get "#{baseUrl}/html.html", (err,res) ->
-				return done(err)  if err
-				actual = res.text
-				safefs.readFile "#{expectPath}/html.html", (err,expected) ->
-					return done(err)  if err
+		test('served generated documents', done =>
+			superAgent.get(`${baseUrl}/html.html`, function(err,res) {
+				if (err) { return done(err); }
+				const actual = res.text;
+				return safefs.readFile(`${expectPath}/html.html`, function(err,expected) {
+					if (err) { return done(err); }
 					equal(
-						actual.toString().trim()
+						actual.toString().trim(),
 						expected.toString().trim()
-					)
-					done()
+					);
+					return done();
+				});
+			})
+		);
 
-		test 'served custom urls', (done) ->
-			superAgent.get "#{baseUrl}/my-custom-url", (err,res) ->
-				return done(err)  if err
-				actual = res.text
-				safefs.readFile "#{expectPath}/custom-url.html", (err,expected) ->
-					return done(err)  if err
+		test('served custom urls', done =>
+			superAgent.get(`${baseUrl}/my-custom-url`, function(err,res) {
+				if (err) { return done(err); }
+				const actual = res.text;
+				return safefs.readFile(`${expectPath}/custom-url.html`, function(err,expected) {
+					if (err) { return done(err); }
 					equal(
-						actual.toString().trim()
+						actual.toString().trim(),
 						expected.toString().trim()
-					)
-					done()
+					);
+					return done();
+				});
+			})
+		);
 
-		test 'supports secondary urls - part 1/2', (done) ->
-			superAgent.get "#{baseUrl}/my-secondary-urls1", (err,res) ->
-				return done(err)  if err
+		test('supports secondary urls - part 1/2', done =>
+			superAgent.get(`${baseUrl}/my-secondary-urls1`, function(err,res) {
+				if (err) { return done(err); }
 
 				deepEqual(
-					res.redirects
-					['http://0.0.0.0:9770/secondary-urls.html']
+					res.redirects,
+					['http://0.0.0.0:9770/secondary-urls.html'],
 					'redirects to be as expected'
-				)
+				);
 
-				actual = res.text
-				safefs.readFile "#{expectPath}/secondary-urls.html", (err,expected) ->
-					return done(err)  if err
+				const actual = res.text;
+				return safefs.readFile(`${expectPath}/secondary-urls.html`, function(err,expected) {
+					if (err) { return done(err); }
 					equal(
-						actual.toString().trim()
+						actual.toString().trim(),
 						expected.toString().trim()
-					)
-					done()
+					);
+					return done();
+				});
+			})
+		);
 
-		test 'supports secondary urls - part 2/2', (done) ->
-			superAgent.get "#{baseUrl}/my-secondary-urls2", (err,res) ->
-				return done(err)  if err
+		test('supports secondary urls - part 2/2', done =>
+			superAgent.get(`${baseUrl}/my-secondary-urls2`, function(err,res) {
+				if (err) { return done(err); }
 
 				deepEqual(
-					res.redirects
-					['http://0.0.0.0:9770/secondary-urls.html']
+					res.redirects,
+					['http://0.0.0.0:9770/secondary-urls.html'],
 					'redirects to be as expected'
-				)
+				);
 
-				actual = res.text
-				safefs.readFile "#{expectPath}/secondary-urls.html", (err,expected) ->
-					return done(err)  if err
+				const actual = res.text;
+				return safefs.readFile(`${expectPath}/secondary-urls.html`, function(err,expected) {
+					if (err) { return done(err); }
 					equal(
-						actual.toString().trim()
+						actual.toString().trim(),
 						expected.toString().trim()
-					)
-					done()
+					);
+					return done();
+				});
+			})
+		);
 
-		test 'served dynamic documents - part 1/2', (done) ->
-			superAgent.get "#{baseUrl}/dynamic.html?name=ben", (err,res) ->
-				return done(err)  if err
-				actual = res.text
-				expected = 'hi ben'
+		test('served dynamic documents - part 1/2', done =>
+			superAgent.get(`${baseUrl}/dynamic.html?name=ben`, function(err,res) {
+				if (err) { return done(err); }
+				const actual = res.text;
+				const expected = 'hi ben';
 				equal(
-					actual.toString().trim()
+					actual.toString().trim(),
 					expected
-				)
-				done()
+				);
+				return done();
+			})
+		);
 
-		test 'served dynamic documents - part 2/2', (done) ->
-			superAgent.get "#{baseUrl}/dynamic.html?name=joe", (err,res) ->
-				return done(err)  if err
-				actual = res.text
-				expected = 'hi joe'
+		return test('served dynamic documents - part 2/2', done =>
+			superAgent.get(`${baseUrl}/dynamic.html?name=joe`, function(err,res) {
+				if (err) { return done(err); }
+				const actual = res.text;
+				const expected = 'hi joe';
 				equal(
-					actual.toString().trim()
+					actual.toString().trim(),
 					expected
-				)
-				done()
+				);
+				return done();
+			})
+		);
+	});
 
-	test 'close the close', ->
-		docpad.getServer(true).serverHttp.close()
+	return test('close the close', () => docpad.getServer(true).serverHttp.close());
+});

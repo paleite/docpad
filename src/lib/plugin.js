@@ -1,254 +1,283 @@
-# ---------------------------------
-# Requires
+/*
+ * decaffeinate suggestions:
+ * DS102: Remove unnecessary code created because of implicit returns
+ * DS206: Consider reworking classes to avoid initClass
+ * DS207: Consider shorter variations of null checks
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ */
+// ---------------------------------
+// Requires
 
-# External
-extendr = require('extendr')
-typeChecker = require('typechecker')
-ambi = require('ambi')
-eachr = require('eachr')
+// External
+const extendr = require('extendr');
+const typeChecker = require('typechecker');
+const ambi = require('ambi');
+const eachr = require('eachr');
 
 
-# ---------------------------------
-# Classes
+// ---------------------------------
+// Classes
 
-# Define Plugin
-###*
-# The base class for all DocPad plugins
-# @class BasePlugin
-# @constructor
-###
-class BasePlugin
-
-	###*
-	# Add support for BasePlugin.extend(proto)
-	# @private
-	# @property {Object} @extend
-	###
-	@extend: require('csextends')
-
-	# ---------------------------------
-	# Inherited
-
-	###*
-	# The DocPad Instance
-	# @private
-	# @property {Object} docpad
-	###
-	docpad: null
-
-	# ---------------------------------
-	# Variables
-
-	###*
-	# The plugin name
-	# @property {String}
-	###
-	name: null
-
-	###*
-	# The plugin config
-	# @property {Object}
-	###
-	config: {}
+// Define Plugin
+/**
+ * The base class for all DocPad plugins
+ * @class BasePlugin
+ * @constructor
+ */
+class BasePlugin {
+	static initClass() {
 	
-	###*
-	# The instance config.
-	# @property {Object}
-	###
-	instanceConfig: {}
+		/**
+		 * Add support for BasePlugin.extend(proto)
+		 * @private
+		 * @property {Object} @extend
+		 */
+		this.extend = require('csextends');
+	
+		// ---------------------------------
+		// Inherited
+	
+		/**
+		 * The DocPad Instance
+		 * @private
+		 * @property {Object} docpad
+		 */
+		this.prototype.docpad = null;
+	
+		// ---------------------------------
+		// Variables
+	
+		/**
+		 * The plugin name
+		 * @property {String}
+		 */
+		this.prototype.name = null;
+	
+		/**
+		 * The plugin config
+		 * @property {Object}
+		 */
+		this.prototype.config = {};
+		
+		/**
+		 * The instance config.
+		 * @property {Object}
+		 */
+		this.prototype.instanceConfig = {};
+	
+		/**
+		 * Plugin priority
+		 * @private
+		 * @property {Number}
+		 */
+		this.prototype.priority = 500;
+	}
 
-	###*
-	# Plugin priority
-	# @private
-	# @property {Number}
-	###
-	priority: 500
+	/**
+	 * Constructor method for the plugin
+	 * @method constructor
+	 * @param {Object} opts
+	 */
+	constructor(opts) {
+		// Prepare
+		this.setConfig = this.setConfig.bind(this);
+		this.getConfig = this.getConfig.bind(this);
+		const me = this;
+		const {docpad,config} = opts;
+		this.docpad = docpad;
 
-	###*
-	# Constructor method for the plugin
-	# @method constructor
-	# @param {Object} opts
-	###
-	constructor: (opts) ->
-		# Prepare
-		me = @
-		{docpad,config} = opts
-		@docpad = docpad
+		// Bind listeners
+		this.bindListeners();
 
-		# Bind listeners
-		@bindListeners()
+		// Swap out our configuration
+		this.config = extendr.deepClone(this.config);
+		this.instanceConfig = extendr.deepClone(this.instanceConfig);
+		this.initialConfig = this.config;
+		this.setConfig(config);
 
-		# Swap out our configuration
-		@config = extendr.deepClone(@config)
-		@instanceConfig = extendr.deepClone(@instanceConfig)
-		@initialConfig = @config
-		@setConfig(config)
+		// Return early if we are disabled
+		if (this.isEnabled() === false) { return this; }
 
-		# Return early if we are disabled
-		return @  if @isEnabled() is false
+		// Listen to events
+		this.addListeners();
 
-		# Listen to events
-		@addListeners()
+		// Chain
+		this;
+	}
 
-		# Chain
-		@
+	/**
+	 * Set Instance Configuration
+	 * @private
+	 * @method setInstanceConfig
+	 * @param {Object} instanceConfig
+	 */
+	setInstanceConfig(instanceConfig) {
+		// Merge in the instance configurations
+		if (instanceConfig) {
+			extendr.safeDeepExtendPlainObjects(this.instanceConfig, instanceConfig);
+			if (this.config) { extendr.safeDeepExtendPlainObjects(this.config, instanceConfig); }
+		}
+		return this;
+	}
 
-	###*
-	# Set Instance Configuration
-	# @private
-	# @method setInstanceConfig
-	# @param {Object} instanceConfig
-	###
-	setInstanceConfig: (instanceConfig) ->
-		# Merge in the instance configurations
-		if instanceConfig
-			extendr.safeDeepExtendPlainObjects(@instanceConfig, instanceConfig)
-			extendr.safeDeepExtendPlainObjects(@config, instanceConfig)  if @config
-		@
+	/**
+	 * Set Configuration
+	 * @private
+	 * @method {Object} setConfig
+	 * @param {Object} [instanceConfig=null]
+	 */
+	setConfig(instanceConfig=null) {
+		// Prepare
+		const { docpad } = this;
+		const userConfig = this.docpad.config.plugins[this.name];
+		this.config = (this.docpad.config.plugins[this.name] = {});
 
-	###*
-	# Set Configuration
-	# @private
-	# @method {Object} setConfig
-	# @param {Object} [instanceConfig=null]
-	###
-	setConfig: (instanceConfig=null) =>
-		# Prepare
-		docpad = @docpad
-		userConfig = @docpad.config.plugins[@name]
-		@config = @docpad.config.plugins[@name] = {}
+		// Instance config
+		if (instanceConfig) { this.setInstanceConfig(instanceConfig); }
 
-		# Instance config
-		@setInstanceConfig(instanceConfig)  if instanceConfig
+		// Merge configurations
+		const configPackages = [this.initialConfig, userConfig, this.instanceConfig];
+		const configsToMerge = [this.config];
+		docpad.mergeConfigurations(configPackages, configsToMerge);
 
-		# Merge configurations
-		configPackages = [@initialConfig, userConfig, @instanceConfig]
-		configsToMerge = [@config]
-		docpad.mergeConfigurations(configPackages, configsToMerge)
+		// Remove listeners if we are disabled
+		if (!this.isEnabled()) { this.removeListeners(); }
 
-		# Remove listeners if we are disabled
-		@removeListeners()  unless @isEnabled()
+		// Chain
+		return this;
+	}
 
-		# Chain
-		@
+	/**
+	 * Get the Configuration
+	 * @private
+	 * @method {Object}
+	 */
+	getConfig() {
+		return this.config;
+	}
 
-	###*
-	# Get the Configuration
-	# @private
-	# @method {Object}
-	###
-	getConfig: =>
-		return @config
-
-	###*
-	# Alias for b/c
-	# @private
-	# @method bindEvents
-	###
-	bindEvents: -> @addListeners()
-
-
-	###*
-	# Bind Listeners
-	# @private
-	# @method bindListeners
-	###
-	bindListeners: ->
-		# Prepare
-		pluginInstance = @
-		docpad = @docpad
-		events = docpad.getEvents()
-
-		# Bind events
-		eachr events, (eventName) ->
-			# Fetch the event handler
-			eventHandler = pluginInstance[eventName]
-
-			# Check it exists and is a function
-			if typeChecker.isFunction(eventHandler)
-				# Bind the listener to the plugin
-				pluginInstance[eventName] = eventHandler.bind(pluginInstance)
-
-		# Chain
-		@
+	/**
+	 * Alias for b/c
+	 * @private
+	 * @method bindEvents
+	 */
+	bindEvents() { return this.addListeners(); }
 
 
-	###*
-	# Add Listeners
-	# @private
-	# @method addListeners
-	###
-	addListeners: ->
-		# Prepare
-		pluginInstance = @
-		docpad = @docpad
-		events = docpad.getEvents()
+	/**
+	 * Bind Listeners
+	 * @private
+	 * @method bindListeners
+	 */
+	bindListeners() {
+		// Prepare
+		const pluginInstance = this;
+		const { docpad } = this;
+		const events = docpad.getEvents();
 
-		# Bind events
-		eachr events, (eventName) ->
-			# Fetch the event handler
-			eventHandler = pluginInstance[eventName]
+		// Bind events
+		eachr(events, function(eventName) {
+			// Fetch the event handler
+			const eventHandler = pluginInstance[eventName];
 
-			# Check it exists and is a function
-			if typeChecker.isFunction(eventHandler)
-				# Apply the priority
-				eventHandlerPriority = pluginInstance[eventName+'Priority'] or pluginInstance.priority or null
-				eventHandler.priority ?= eventHandlerPriority
-				eventHandler.name = "#{pluginInstance.name}: {eventName}"
-				eventHandler.name += "(priority eventHandler.priority})"  if eventHandler.priority?
+			// Check it exists and is a function
+			if (typeChecker.isFunction(eventHandler)) {
+				// Bind the listener to the plugin
+				return pluginInstance[eventName] = eventHandler.bind(pluginInstance);
+			}
+		});
 
-				# Wrap the event handler, and bind it to docpad
-				docpad
+		// Chain
+		return this;
+	}
+
+
+	/**
+	 * Add Listeners
+	 * @private
+	 * @method addListeners
+	 */
+	addListeners() {
+		// Prepare
+		const pluginInstance = this;
+		const { docpad } = this;
+		const events = docpad.getEvents();
+
+		// Bind events
+		eachr(events, function(eventName) {
+			// Fetch the event handler
+			const eventHandler = pluginInstance[eventName];
+
+			// Check it exists and is a function
+			if (typeChecker.isFunction(eventHandler)) {
+				// Apply the priority
+				const eventHandlerPriority = pluginInstance[eventName+'Priority'] || pluginInstance.priority || null;
+				if (eventHandler.priority == null) { eventHandler.priority = eventHandlerPriority; }
+				eventHandler.name = `${pluginInstance.name}: {eventName}`;
+				if (eventHandler.priority != null) { eventHandler.name += "(priority eventHandler.priority})"; }
+
+				// Wrap the event handler, and bind it to docpad
+				return docpad
 					.off(eventName, eventHandler)
-					.on(eventName, eventHandler)
+					.on(eventName, eventHandler);
+			}
+		});
 
-		# Chain
-		@
-
-
-	###*
-	# Remove Listeners
-	# @private
-	# @method removeListeners
-	###
-	removeListeners: ->
-		# Prepare
-		pluginInstance = @
-		docpad = @docpad
-		events = docpad.getEvents()
-
-		# Bind events
-		eachr events, (eventName) ->
-			# Fetch the event handler
-			eventHandler = pluginInstance[eventName]
-
-			# Check it exists and is a function
-			if typeChecker.isFunction(eventHandler)
-				# Wrap the event handler, and unbind it from docpad
-				docpad.off(eventName, eventHandler)
-
-		# Chain
-		@
-
-	###*
-	# Destructor. Calls removeListeners
-	# @private
-	# @method destroy
-	###
-	destroy: ->
-		@removeListeners()
-		@
+		// Chain
+		return this;
+	}
 
 
-	###*
-	# Is Enabled?
-	# @method isEnabled
-	# @return {Boolean}
-	###
-	isEnabled: ->
-		return @config.enabled isnt false
+	/**
+	 * Remove Listeners
+	 * @private
+	 * @method removeListeners
+	 */
+	removeListeners() {
+		// Prepare
+		const pluginInstance = this;
+		const { docpad } = this;
+		const events = docpad.getEvents();
+
+		// Bind events
+		eachr(events, function(eventName) {
+			// Fetch the event handler
+			const eventHandler = pluginInstance[eventName];
+
+			// Check it exists and is a function
+			if (typeChecker.isFunction(eventHandler)) {
+				// Wrap the event handler, and unbind it from docpad
+				return docpad.off(eventName, eventHandler);
+			}
+		});
+
+		// Chain
+		return this;
+	}
+
+	/**
+	 * Destructor. Calls removeListeners
+	 * @private
+	 * @method destroy
+	 */
+	destroy() {
+		this.removeListeners();
+		return this;
+	}
 
 
-# ---------------------------------
-# Export Plugin
-module.exports = BasePlugin
+	/**
+	 * Is Enabled?
+	 * @method isEnabled
+	 * @return {Boolean}
+	 */
+	isEnabled() {
+		return this.config.enabled !== false;
+	}
+}
+BasePlugin.initClass();
+
+
+// ---------------------------------
+// Export Plugin
+module.exports = BasePlugin;

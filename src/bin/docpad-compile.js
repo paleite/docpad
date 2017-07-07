@@ -1,68 +1,80 @@
-# ---------------------------------
-# Requires
+/*
+ * decaffeinate suggestions:
+ * DS102: Remove unnecessary code created because of implicit returns
+ * DS207: Consider shorter variations of null checks
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ */
+// ---------------------------------
+// Requires
 
-# Local
-DocPad = require('../lib/docpad')
-docpadUtil = require('../lib/util')
-
-
-# ---------------------------------
-# Helpers
-
-# Prepare
-getArgument = (name,value=null,defaultValue=null) ->
-	result = defaultValue
-	argumentIndex = process.argv.indexOf("--#{name}")
-	if argumentIndex isnt -1
-		result = value ? process.argv[argumentIndex+1]
-	return result
-
-# DocPad Action
-action = (getArgument('action', null, 'generate')+' '+getArgument('watch', 'watch', '')).trim()
+// Local
+const DocPad = require('../lib/docpad');
+const docpadUtil = require('../lib/util');
 
 
-# ---------------------------------
-# DocPad Configuration
-docpadConfig = {}
-docpadConfig.rootPath = getArgument('rootPath', null, process.cwd())
-docpadConfig.outPath = getArgument('outPath', null, docpadConfig.rootPath+'/out')
-docpadConfig.srcPath = getArgument('srcPath', null, docpadConfig.rootPath+'/src')
+// ---------------------------------
+// Helpers
 
-docpadConfig.documentsPaths = (->
-	documentsPath = getArgument('documentsPath')
-	if documentsPath?
-		documentsPath = docpadConfig.srcPath  if documentsPath is 'auto'
-	else
-		documentsPath = docpadConfig.srcPath+'/documents'
-	return [documentsPath]
-)()
+// Prepare
+const getArgument = function(name,value=null,defaultValue=null) {
+	let result = defaultValue;
+	const argumentIndex = process.argv.indexOf(`--${name}`);
+	if (argumentIndex !== -1) {
+		result = value != null ? value : process.argv[argumentIndex+1];
+	}
+	return result;
+};
 
-docpadConfig.port = (->
-	port = getArgument('port')
-	port = parseInt(port,10)  if port and isNaN(port) is false
-	return port
-)()
-
-docpadConfig.renderSingleExtensions = (->
-	renderSingleExtensions = getArgument('renderSingleExtensions', null, 'auto')
-	if renderSingleExtensions in ['true','yes']
-		renderSingleExtensions = true
-	else if renderSingleExtensions in ['false','no']
-		renderSingleExtensions = false
-	return renderSingleExtensions
-)()
+// DocPad Action
+const action = (getArgument('action', null, 'generate')+' '+getArgument('watch', 'watch', '')).trim();
 
 
-# ---------------------------------
-# Create DocPad Instance
-new DocPad docpadConfig, (err,docpad) ->
-	# Check
-	return docpadUtil.writeError(err)  if err
+// ---------------------------------
+// DocPad Configuration
+const docpadConfig = {};
+docpadConfig.rootPath = getArgument('rootPath', null, process.cwd());
+docpadConfig.outPath = getArgument('outPath', null, docpadConfig.rootPath+'/out');
+docpadConfig.srcPath = getArgument('srcPath', null, docpadConfig.rootPath+'/src');
 
-	# Generate and Serve
-	docpad.action action, (err) ->
-		# Check
-		return docpadUtil.writeError(err)  if err
+docpadConfig.documentsPaths = (function() {
+	let documentsPath = getArgument('documentsPath');
+	if (documentsPath != null) {
+		if (documentsPath === 'auto') { documentsPath = docpadConfig.srcPath; }
+	} else {
+		documentsPath = docpadConfig.srcPath+'/documents';
+	}
+	return [documentsPath];
+})();
 
-		# Done
-		console.log('OK')
+docpadConfig.port = (function() {
+	let port = getArgument('port');
+	if (port && (isNaN(port) === false)) { port = parseInt(port,10); }
+	return port;
+})();
+
+docpadConfig.renderSingleExtensions = (function() {
+	let renderSingleExtensions = getArgument('renderSingleExtensions', null, 'auto');
+	if (['true','yes'].includes(renderSingleExtensions)) {
+		renderSingleExtensions = true;
+	} else if (['false','no'].includes(renderSingleExtensions)) {
+		renderSingleExtensions = false;
+	}
+	return renderSingleExtensions;
+})();
+
+
+// ---------------------------------
+// Create DocPad Instance
+new DocPad(docpadConfig, function(err,docpad) {
+	// Check
+	if (err) { return docpadUtil.writeError(err); }
+
+	// Generate and Serve
+	return docpad.action(action, function(err) {
+		// Check
+		if (err) { return docpadUtil.writeError(err); }
+
+		// Done
+		return console.log('OK');
+	});
+});

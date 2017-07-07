@@ -1,47 +1,57 @@
-# ---------------------------------
-# Requires
+/*
+ * decaffeinate suggestions:
+ * DS102: Remove unnecessary code created because of implicit returns
+ * DS207: Consider shorter variations of null checks
+ * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
+ */
+// ---------------------------------
+// Requires
 
-# Local
-DocPad = require('../lib/docpad')
-docpadUtil = require('../lib/util')
-
-
-# ---------------------------------
-# Helpers
-
-# Prepare
-getArgument = (name,value=null,defaultValue=null) ->
-	result = defaultValue
-	argumentIndex = process.argv.indexOf("--#{name}")
-	if argumentIndex isnt -1
-		result = value ? process.argv[argumentIndex+1]
-	return result
-
-# DocPad Action
-action = getArgument('action', null, 'server generate')
+// Local
+const DocPad = require('../lib/docpad');
+const docpadUtil = require('../lib/util');
 
 
-# ---------------------------------
-# DocPad Configuration
-docpadConfig = {}
+// ---------------------------------
+// Helpers
 
-docpadConfig.port = (->
-	port = getArgument('port')
-	port = parseInt(port,10)  if port and isNaN(port) is false
-	return port
-)()
+// Prepare
+const getArgument = function(name,value=null,defaultValue=null) {
+	let result = defaultValue;
+	const argumentIndex = process.argv.indexOf(`--${name}`);
+	if (argumentIndex !== -1) {
+		result = value != null ? value : process.argv[argumentIndex+1];
+	}
+	return result;
+};
+
+// DocPad Action
+const action = getArgument('action', null, 'server generate');
 
 
-# ---------------------------------
-# Create DocPad Instance
-new DocPad docpadConfig, (err,docpad) ->
-	# Check
-	return docpadUtil.writeError(err)  if err
+// ---------------------------------
+// DocPad Configuration
+const docpadConfig = {};
 
-	# Generate and Serve
-	docpad.action action, (err) ->
-		# Check
-		return docpadUtil.writeError(err)  if err
+docpadConfig.port = (function() {
+	let port = getArgument('port');
+	if (port && (isNaN(port) === false)) { port = parseInt(port,10); }
+	return port;
+})();
 
-		# Done
-		console.log('OK')
+
+// ---------------------------------
+// Create DocPad Instance
+new DocPad(docpadConfig, function(err,docpad) {
+	// Check
+	if (err) { return docpadUtil.writeError(err); }
+
+	// Generate and Serve
+	return docpad.action(action, function(err) {
+		// Check
+		if (err) { return docpadUtil.writeError(err); }
+
+		// Done
+		return console.log('OK');
+	});
+});

@@ -1,23 +1,23 @@
-# =====================================
-# Requires
+// =====================================
+// Requires
 
-# Local
-ElementsCollection = require('./elements')
-
-
-# =====================================
-# Classes
-
-###*
-# Meta collection class. Collection of
-# document meta data strings
-# @class MetaCollection
-# @constructor
-# @extends ElementsCollection
-###
-class MetaCollection extends ElementsCollection
+// Local
+const ElementsCollection = require('./elements');
 
 
-# =====================================
-# Export
-module.exports = MetaCollection
+// =====================================
+// Classes
+
+/**
+ * Meta collection class. Collection of
+ * document meta data strings
+ * @class MetaCollection
+ * @constructor
+ * @extends ElementsCollection
+ */
+class MetaCollection extends ElementsCollection {}
+
+
+// =====================================
+// Export
+module.exports = MetaCollection;
